@@ -5,7 +5,7 @@
 // cachean respuestas de la API).
 // =========================================================
 
-const CACHE_NAME = "naromi-cache-v1";
+const CACHE_NAME = "naromi-cache-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -39,7 +39,14 @@ self.addEventListener("fetch", (event) => {
   // Nunca cachear llamadas a la API de Supabase: siempre red.
   if (url.hostname.endsWith(".supabase.co")) return;
 
+  // Red primero, y solo si falla (sin conexion) usamos la copia en cache.
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
