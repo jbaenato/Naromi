@@ -370,28 +370,62 @@ function maderoterapiaFichaSteps() {
       subtitle: "Primera toma de medidas (sesion 1). Todo en centimetros.",
       build: (stepEl, data) => {
         const r1 = el("div", { class: "row" });
-        r1.appendChild(formField({ label: "Abdomen - Cintura", name: "medida_cintura", type: "number", value: data.medida_cintura }));
         r1.appendChild(
-          formField({ label: "Abdomen - Cadera", name: "medida_cadera_abdomen", type: "number", value: data.medida_cadera_abdomen })
+          formField({ label: "Abdomen - Cintura", name: "medida_cintura", type: "number", value: data.medida_cintura, required: true })
+        );
+        r1.appendChild(
+          formField({
+            label: "Abdomen - Cadera",
+            name: "medida_cadera_abdomen",
+            type: "number",
+            value: data.medida_cadera_abdomen,
+            required: true,
+          })
         );
         stepEl.appendChild(r1);
         const r2 = el("div", { class: "row" });
         r2.appendChild(
-          formField({ label: "Piernas - Cadera Dcha.", name: "medida_cadera_pierna_dcha", type: "number", value: data.medida_cadera_pierna_dcha })
+          formField({
+            label: "Piernas - Cadera Dcha.",
+            name: "medida_cadera_pierna_dcha",
+            type: "number",
+            value: data.medida_cadera_pierna_dcha,
+            required: true,
+          })
         );
         r2.appendChild(
-          formField({ label: "Piernas - Cadera Izq.", name: "medida_cadera_pierna_izq", type: "number", value: data.medida_cadera_pierna_izq })
+          formField({
+            label: "Piernas - Cadera Izq.",
+            name: "medida_cadera_pierna_izq",
+            type: "number",
+            value: data.medida_cadera_pierna_izq,
+            required: true,
+          })
         );
         stepEl.appendChild(r2);
         const r3 = el("div", { class: "row" });
         r3.appendChild(
-          formField({ label: "Piernas - Rodilla Dcha.", name: "medida_rodilla_dcha", type: "number", value: data.medida_rodilla_dcha })
+          formField({
+            label: "Piernas - Rodilla Dcha.",
+            name: "medida_rodilla_dcha",
+            type: "number",
+            value: data.medida_rodilla_dcha,
+            required: true,
+          })
         );
         r3.appendChild(
-          formField({ label: "Piernas - Rodilla Izq.", name: "medida_rodilla_izq", type: "number", value: data.medida_rodilla_izq })
+          formField({
+            label: "Piernas - Rodilla Izq.",
+            name: "medida_rodilla_izq",
+            type: "number",
+            value: data.medida_rodilla_izq,
+            required: true,
+          })
         );
         stepEl.appendChild(r3);
-        stepEl.appendChild(formField({ label: "Otros", name: "medida_otros", value: data.medida_otros }));
+        stepEl.appendChild(
+          formField({ label: "Otros", name: "medida_otros", value: data.medida_otros, required: true })
+        );
       },
     },
     ...sharedFichaSteps(),
@@ -400,10 +434,16 @@ function maderoterapiaFichaSteps() {
       build: (stepEl, data) => {
         const row = el("div", { class: "row" });
         row.appendChild(
-          formField({ label: "Fecha", name: "proxima_cita_fecha", type: "date", value: data.proxima_cita_fecha })
+          formField({
+            label: "Fecha",
+            name: "proxima_cita_fecha",
+            type: "date",
+            value: data.proxima_cita_fecha,
+            required: true,
+          })
         );
         row.appendChild(
-          formField({ label: "Hora", name: "proxima_cita_hora", type: "time", value: data.proxima_cita_hora })
+          formField({ label: "Hora", name: "proxima_cita_hora", type: "time", value: data.proxima_cita_hora, required: true })
         );
         stepEl.appendChild(row);
       },

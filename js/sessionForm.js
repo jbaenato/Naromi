@@ -131,11 +131,13 @@ function quiromasajeSesionSteps() {
     {
       title: "Motivo de la consulta",
       build: (stepEl, data) => {
-        stepEl.appendChild(formField({ label: "¿Que duele?", name: "que_duele", value: data.que_duele }));
+        stepEl.appendChild(formField({ label: "¿Que duele?", name: "que_duele", value: data.que_duele, required: true }));
         stepEl.appendChild(
-          formField({ label: "¿Desde cuando duele?", name: "desde_cuando", value: data.desde_cuando })
+          formField({ label: "¿Desde cuando duele?", name: "desde_cuando", value: data.desde_cuando, required: true })
         );
-        stepEl.appendChild(formField({ label: "¿Como es el dolor?", name: "como_es_dolor", value: data.como_es_dolor }));
+        stepEl.appendChild(
+          formField({ label: "¿Como es el dolor?", name: "como_es_dolor", value: data.como_es_dolor, required: true })
+        );
         stepEl.appendChild(painScale("intensidad_dolor", data.intensidad_dolor));
 
         stepEl.appendChild(el("label", {}, "Zonas donde sientes dolor o molestia"));
@@ -154,11 +156,12 @@ function quiromasajeSesionSteps() {
             label: "Tipo de tratamiento que se va a realizar",
             name: "plan_tratamiento",
             value: data.plan_tratamiento,
+            required: true,
           })
         );
 
         const objWrap = el("div", { class: "field" });
-        objWrap.appendChild(el("label", {}, "Objetivo del tratamiento"));
+        objWrap.appendChild(el("label", {}, "Objetivo del tratamiento (marca al menos uno)"));
         const objGroup = el("div", { class: "pill-group" });
         [
           ["Aliviar dolor", "objetivo_aliviar_dolor"],
@@ -169,18 +172,38 @@ function quiromasajeSesionSteps() {
         ].forEach(([label, name]) => objGroup.appendChild(checkboxPill(label, name, data[name])));
         objWrap.appendChild(objGroup);
         stepEl.appendChild(objWrap);
-        stepEl.appendChild(formField({ label: "Otro objetivo", name: "objetivo_otro", value: data.objetivo_otro }));
+        stepEl.appendChild(
+          formField({ label: "Otro objetivo", name: "objetivo_otro", value: data.objetivo_otro, required: true })
+        );
         stepEl.appendChild(
           formField({
             label: "Observaciones",
             name: "observaciones_anamnesis",
             type: "textarea",
             value: data.observaciones_anamnesis,
+            required: true,
           })
         );
       },
       onNext: (stepEl, data) => {
-        if (stepEl._bodyMapApi) data.zonas_dolor = JSON.stringify(stepEl._bodyMapApi.getSelected());
+        const zonas = stepEl._bodyMapApi ? stepEl._bodyMapApi.getSelected() : [];
+        if (zonas.length === 0) {
+          showToast("Marca al menos una zona en el mapa corporal", true);
+          return false;
+        }
+        data.zonas_dolor = JSON.stringify(zonas);
+
+        const objetivos = [
+          "objetivo_aliviar_dolor",
+          "objetivo_relajacion",
+          "objetivo_reducir_contracturas",
+          "objetivo_estres",
+          "objetivo_mejorar_movilidad",
+        ];
+        if (!objetivos.some((name) => data[name])) {
+          showToast("Selecciona al menos un objetivo del tratamiento", true);
+          return false;
+        }
       },
     },
     {
@@ -188,21 +211,43 @@ function quiromasajeSesionSteps() {
       build: (stepEl, data) => {
         stepEl.appendChild(formField({ label: "Fecha", name: "fecha", type: "date", value: data.fecha, required: true }));
         stepEl.appendChild(
-          formField({ label: "Tecnicas / terapias aplicadas", name: "tecnicas_aplicadas", type: "textarea", value: data.tecnicas_aplicadas })
+          formField({
+            label: "Tecnicas / terapias aplicadas",
+            name: "tecnicas_aplicadas",
+            type: "textarea",
+            value: data.tecnicas_aplicadas,
+            required: true,
+          })
         );
         stepEl.appendChild(
-          formField({ label: "Duracion de la sesion", name: "duracion", placeholder: "ej. 60 minutos", value: data.duracion })
+          formField({
+            label: "Duracion de la sesion",
+            name: "duracion",
+            placeholder: "ej. 60 minutos",
+            value: data.duracion,
+            required: true,
+          })
         );
         stepEl.appendChild(
-          formField({ label: "Respuesta del cliente durante la sesion", name: "respuesta_cliente", type: "textarea", value: data.respuesta_cliente })
+          formField({
+            label: "Respuesta del cliente durante la sesion",
+            name: "respuesta_cliente",
+            type: "textarea",
+            value: data.respuesta_cliente,
+            required: true,
+          })
         );
-        stepEl.appendChild(formField({ label: "Observaciones", name: "observaciones", type: "textarea", value: data.observaciones }));
+        stepEl.appendChild(
+          formField({ label: "Observaciones", name: "observaciones", type: "textarea", value: data.observaciones, required: true })
+        );
       },
     },
     {
       title: "Recomendaciones para casa",
       build: (stepEl, data) => {
-        stepEl.appendChild(formField({ label: "", name: "recomendaciones", type: "textarea", value: data.recomendaciones }));
+        stepEl.appendChild(
+          formField({ label: "Recomendaciones", name: "recomendaciones", type: "textarea", value: data.recomendaciones, required: true })
+        );
       },
     },
     proximaCitaStep(),
@@ -217,28 +262,60 @@ function maderoterapiaSesionSteps() {
       build: (stepEl, data) => {
         stepEl.appendChild(formField({ label: "Fecha", name: "fecha", type: "date", value: data.fecha, required: true }));
         const r1 = el("div", { class: "row" });
-        r1.appendChild(formField({ label: "Abdomen - Cintura", name: "medida_cintura", type: "number", value: data.medida_cintura }));
         r1.appendChild(
-          formField({ label: "Abdomen - Cadera", name: "medida_cadera_abdomen", type: "number", value: data.medida_cadera_abdomen })
+          formField({ label: "Abdomen - Cintura", name: "medida_cintura", type: "number", value: data.medida_cintura, required: true })
+        );
+        r1.appendChild(
+          formField({
+            label: "Abdomen - Cadera",
+            name: "medida_cadera_abdomen",
+            type: "number",
+            value: data.medida_cadera_abdomen,
+            required: true,
+          })
         );
         stepEl.appendChild(r1);
         const r2 = el("div", { class: "row" });
         r2.appendChild(
-          formField({ label: "Piernas - Cadera Dcha.", name: "medida_cadera_pierna_dcha", type: "number", value: data.medida_cadera_pierna_dcha })
+          formField({
+            label: "Piernas - Cadera Dcha.",
+            name: "medida_cadera_pierna_dcha",
+            type: "number",
+            value: data.medida_cadera_pierna_dcha,
+            required: true,
+          })
         );
         r2.appendChild(
-          formField({ label: "Piernas - Cadera Izq.", name: "medida_cadera_pierna_izq", type: "number", value: data.medida_cadera_pierna_izq })
+          formField({
+            label: "Piernas - Cadera Izq.",
+            name: "medida_cadera_pierna_izq",
+            type: "number",
+            value: data.medida_cadera_pierna_izq,
+            required: true,
+          })
         );
         stepEl.appendChild(r2);
         const r3 = el("div", { class: "row" });
         r3.appendChild(
-          formField({ label: "Piernas - Rodilla Dcha.", name: "medida_rodilla_dcha", type: "number", value: data.medida_rodilla_dcha })
+          formField({
+            label: "Piernas - Rodilla Dcha.",
+            name: "medida_rodilla_dcha",
+            type: "number",
+            value: data.medida_rodilla_dcha,
+            required: true,
+          })
         );
         r3.appendChild(
-          formField({ label: "Piernas - Rodilla Izq.", name: "medida_rodilla_izq", type: "number", value: data.medida_rodilla_izq })
+          formField({
+            label: "Piernas - Rodilla Izq.",
+            name: "medida_rodilla_izq",
+            type: "number",
+            value: data.medida_rodilla_izq,
+            required: true,
+          })
         );
         stepEl.appendChild(r3);
-        stepEl.appendChild(formField({ label: "Otros", name: "medida_otros", value: data.medida_otros }));
+        stepEl.appendChild(formField({ label: "Otros", name: "medida_otros", value: data.medida_otros, required: true }));
       },
     },
     proximaCitaStep(),
@@ -250,8 +327,12 @@ function proximaCitaStep() {
     title: "Proxima cita",
     build: (stepEl, data) => {
       const row = el("div", { class: "row" });
-      row.appendChild(formField({ label: "Fecha", name: "proxima_cita_fecha", type: "date", value: data.proxima_cita_fecha }));
-      row.appendChild(formField({ label: "Hora", name: "proxima_cita_hora", type: "time", value: data.proxima_cita_hora }));
+      row.appendChild(
+        formField({ label: "Fecha", name: "proxima_cita_fecha", type: "date", value: data.proxima_cita_fecha, required: true })
+      );
+      row.appendChild(
+        formField({ label: "Hora", name: "proxima_cita_hora", type: "time", value: data.proxima_cita_hora, required: true })
+      );
       stepEl.appendChild(row);
     },
   };

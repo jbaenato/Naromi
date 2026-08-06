@@ -457,19 +457,22 @@ table.data tbody tr:hover { background: var(--cream); }
 
 .bodymap-figure {
   width: 100%;
-  max-width: 220px;
+  max-width: 300px;
   height: auto;
+  display: block;
 }
 
 .bodymap-zone {
-  fill: #d9cdbf;
-  stroke: #b3a48f;
-  stroke-width: 1;
+  fill: #4aa3ff;
+  fill-opacity: 0;
+  stroke: #4aa3ff;
+  stroke-opacity: 0;
+  stroke-width: 1.5;
   cursor: pointer;
-  transition: fill 0.12s;
+  transition: fill-opacity 0.12s, stroke-opacity 0.12s, fill 0.12s;
 }
-.bodymap-zone:hover { fill: #e3ac95; }
-.bodymap-zone.selected { fill: var(--coral); stroke: var(--coral-dark); }
+.bodymap-zone:hover { fill-opacity: 0.25; stroke-opacity: 0.6; }
+.bodymap-zone.selected { fill: var(--coral); fill-opacity: 0.55; stroke: var(--coral-dark); stroke-opacity: 1; stroke-width: 1.5; }
 
 .bodymap-chips {
   display: flex;

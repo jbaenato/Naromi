@@ -33,6 +33,7 @@ function formField({ label, type = "text", name, options, value = "", required =
 
   if (type === "select") {
     const select = el("select", { id: name, name });
+    if (required) select.required = true;
     select.appendChild(el("option", { value: "" }, "-- Selecciona --"));
     options.forEach((opt) => {
       const optEl = el("option", { value: opt.value || opt }, opt.label || opt);
@@ -42,6 +43,7 @@ function formField({ label, type = "text", name, options, value = "", required =
     wrap.appendChild(select);
   } else if (type === "textarea") {
     const ta = el("textarea", { id: name, name, placeholder });
+    if (required) ta.required = true;
     ta.value = value;
     wrap.appendChild(ta);
   } else {
@@ -177,6 +179,7 @@ function painScale(name, value) {
   for (let i = 0; i <= 10; i++) {
     const lbl = el("label", {});
     const input = el("input", { type: "radio", name, value: String(i) });
+    input.required = true;
     if (String(value) === String(i)) {
       input.checked = true;
       lbl.classList.add("selected");
