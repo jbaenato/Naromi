@@ -45,6 +45,7 @@ create table if not exists clients (
   manos_dormidas boolean,
   duermes_bien boolean,
   aprietas_dientes boolean,
+  tiene_enfermedad boolean,
   padece_enfermedad text,
   toma_medicacion boolean,
   medicacion_cual text,

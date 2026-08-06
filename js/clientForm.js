@@ -91,6 +91,7 @@ const QUIRO_ONLY_FIELDS = [
   "manos_dormidas",
   "duermes_bien",
   "aprietas_dientes",
+  "tiene_enfermedad",
   "padece_enfermedad",
   "toma_medicacion",
   "medicacion_cual",
@@ -194,22 +195,34 @@ function quiromasajeFichaSteps() {
         ].forEach(([label, name]) => stepEl.appendChild(yesNoRow(label, name, data[name])));
 
         stepEl.appendChild(
-          formField({
-            label: "¿Padece alguna enfermedad?",
+          conditionalField("¿Padece alguna enfermedad?", "tiene_enfermedad", data.tiene_enfermedad, {
+            label: "¿Cual?",
             name: "padece_enfermedad",
             type: "textarea",
             value: data.padece_enfermedad,
           })
         );
-        stepEl.appendChild(yesNoRow("¿Tomas medicacion actualmente?", "toma_medicacion", data.toma_medicacion));
-        stepEl.appendChild(formField({ label: "¿Cual?", name: "medicacion_cual", value: data.medicacion_cual }));
-        stepEl.appendChild(yesNoRow("¿Tienes alergias?", "tiene_alergias", data.tiene_alergias));
-        stepEl.appendChild(formField({ label: "¿A que?", name: "alergia_a", value: data.alergia_a }));
         stepEl.appendChild(
-          yesNoRow("¿Has tenido cirugia, fractura o lesion importante?", "cirugia_fractura", data.cirugia_fractura)
+          conditionalField("¿Tomas medicacion actualmente?", "toma_medicacion", data.toma_medicacion, {
+            label: "¿Cual?",
+            name: "medicacion_cual",
+            value: data.medicacion_cual,
+          })
         );
         stepEl.appendChild(
-          formField({ label: "¿Cual y cuando?", name: "cirugia_detalle", value: data.cirugia_detalle })
+          conditionalField("¿Tienes alergias?", "tiene_alergias", data.tiene_alergias, {
+            label: "¿A que?",
+            name: "alergia_a",
+            value: data.alergia_a,
+          })
+        );
+        stepEl.appendChild(
+          conditionalField(
+            "¿Has tenido cirugia, fractura o lesion importante?",
+            "cirugia_fractura",
+            data.cirugia_fractura,
+            { label: "¿Cual y cuando?", name: "cirugia_detalle", value: data.cirugia_detalle }
+          )
         );
       },
     },
@@ -244,14 +257,27 @@ function quiromasajeFichaSteps() {
 
         const palp = el("div", { class: "card", style: "background:#fbf6f1;margin-top:14px;" });
         palp.appendChild(el("h2", {}, "Hallazgos a la palpacion"));
-        palp.appendChild(yesNoRow("Puntos gatillo", "puntos_gatillo", data.puntos_gatillo));
         palp.appendChild(
-          formField({ label: "¿Donde?", name: "puntos_gatillo_donde", value: data.puntos_gatillo_donde })
+          conditionalField("Puntos gatillo", "puntos_gatillo", data.puntos_gatillo, {
+            label: "¿Donde?",
+            name: "puntos_gatillo_donde",
+            value: data.puntos_gatillo_donde,
+          })
         );
-        palp.appendChild(yesNoRow("Contracturas", "contracturas", data.contracturas));
-        palp.appendChild(formField({ label: "¿Donde?", name: "contracturas_donde", value: data.contracturas_donde }));
-        palp.appendChild(yesNoRow("Inflamacion", "inflamacion", data.inflamacion));
-        palp.appendChild(formField({ label: "¿Donde?", name: "inflamacion_donde", value: data.inflamacion_donde }));
+        palp.appendChild(
+          conditionalField("Contracturas", "contracturas", data.contracturas, {
+            label: "¿Donde?",
+            name: "contracturas_donde",
+            value: data.contracturas_donde,
+          })
+        );
+        palp.appendChild(
+          conditionalField("Inflamacion", "inflamacion", data.inflamacion, {
+            label: "¿Donde?",
+            name: "inflamacion_donde",
+            value: data.inflamacion_donde,
+          })
+        );
         palp.appendChild(
           formField({
             label: "Temperatura de la piel",
@@ -298,15 +324,26 @@ function maderoterapiaFichaSteps() {
           })
         );
         stepEl.appendChild(formField({ label: "Analisis de la piel", name: "analisis_piel", value: data.analisis_piel }));
-        stepEl.appendChild(yesNoRow("¿Bebe suficiente agua al dia?", "bebe_agua", data.bebe_agua));
         stepEl.appendChild(
-          formField({ label: "Cantidad aproximada", name: "cantidad_agua", value: data.cantidad_agua })
+          conditionalField("¿Bebe suficiente agua al dia?", "bebe_agua", data.bebe_agua, {
+            label: "Cantidad aproximada",
+            name: "cantidad_agua",
+            value: data.cantidad_agua,
+          })
         );
-        stepEl.appendChild(yesNoRow("Fuma", "fuma", data.fuma));
-        stepEl.appendChild(formField({ label: "¿Cuantos al dia?", name: "cigarrillos_dia", value: data.cigarrillos_dia }));
-        stepEl.appendChild(yesNoRow("Bebe alcohol", "bebe_alcohol", data.bebe_alcohol));
         stepEl.appendChild(
-          formField({ label: "¿Con que frecuencia?", name: "frecuencia_alcohol", value: data.frecuencia_alcohol })
+          conditionalField("Fuma", "fuma", data.fuma, {
+            label: "¿Cuantos al dia?",
+            name: "cigarrillos_dia",
+            value: data.cigarrillos_dia,
+          })
+        );
+        stepEl.appendChild(
+          conditionalField("Bebe alcohol", "bebe_alcohol", data.bebe_alcohol, {
+            label: "¿Con que frecuencia?",
+            name: "frecuencia_alcohol",
+            value: data.frecuencia_alcohol,
+          })
         );
         stepEl.appendChild(
           formField({
@@ -387,23 +424,26 @@ function sharedFichaSteps() {
       build: (stepEl, data) => {
         stepEl.appendChild(el("h2", { style: "border:none;font-size:0.9rem;" }, "Kinesiotape"));
         stepEl.appendChild(
-          yesNoRow("Hipersensibilidad al kinesiotape", "kinesiotape_hipersensibilidad", data.kinesiotape_hipersensibilidad)
+          conditionalField(
+            "Hipersensibilidad al kinesiotape",
+            "kinesiotape_hipersensibilidad",
+            data.kinesiotape_hipersensibilidad,
+            { label: "Zona tratada", name: "kinesiotape_zona", value: data.kinesiotape_zona }
+          )
         );
-        stepEl.appendChild(formField({ label: "Zona tratada", name: "kinesiotape_zona", value: data.kinesiotape_zona }));
         stepEl.appendChild(
           el("h2", { style: "border:none;font-size:0.9rem;margin-top:16px;" }, "Auriculoterapia")
         );
         stepEl.appendChild(
-          formField({
-            label: "Pabellon auricular dominante",
-            name: "auriculoterapia_pabellon",
-            type: "select",
-            options: ["Derecho", "Izquierdo"],
-            value: data.auriculoterapia_pabellon,
-          })
-        );
-        stepEl.appendChild(
-          formField({ label: "Puntos tratados", name: "auriculoterapia_puntos", value: data.auriculoterapia_puntos })
+          conditionalFieldFromSelect(
+            {
+              label: "Pabellon auricular dominante",
+              name: "auriculoterapia_pabellon",
+              options: ["Derecho", "Izquierdo"],
+            },
+            { label: "Puntos tratados", name: "auriculoterapia_puntos", value: data.auriculoterapia_puntos },
+            data.auriculoterapia_pabellon
+          )
         );
       },
     },
@@ -460,6 +500,7 @@ async function submitClientWizard(data) {
     manos_dormidas: ynVal(data, "manos_dormidas"),
     duermes_bien: ynVal(data, "duermes_bien"),
     aprietas_dientes: ynVal(data, "aprietas_dientes"),
+    tiene_enfermedad: ynVal(data, "tiene_enfermedad"),
     padece_enfermedad: strVal(data, "padece_enfermedad"),
     toma_medicacion: ynVal(data, "toma_medicacion"),
     medicacion_cual: strVal(data, "medicacion_cual"),

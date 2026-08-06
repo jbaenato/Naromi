@@ -37,6 +37,10 @@ begin
   end if;
 end $$;
 
+-- 3b. Nueva columna: si el cliente padece alguna enfermedad (antes solo
+--     habia el campo de texto, ahora tiene un Si/No delante)
+alter table clients add column if not exists tiene_enfermedad boolean;
+
 -- 3. Nuevas columnas en "sessions" para el motivo de consulta de cada visita
 alter table sessions add column if not exists que_duele text;
 alter table sessions add column if not exists desde_cuando text;

@@ -146,6 +146,14 @@ main {
 
 .field textarea { min-height: 64px; resize: vertical; }
 
+.field-disabled { opacity: 0.45; }
+.field-disabled input,
+.field-disabled textarea,
+.field-disabled select {
+  cursor: not-allowed;
+  background: var(--border);
+}
+
 .row { display: flex; gap: 12px; flex-wrap: wrap; }
 .row > .field { flex: 1 1 200px; }
 

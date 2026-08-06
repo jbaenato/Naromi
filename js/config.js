@@ -1,6 +1,7 @@
 // =========================================================
-// CONFIGURACION - rellena estos dos valores con los de tu
-// proyecto de Supabase (Project Settings > API).
+// CONFIGURACION - datos de tu proyecto de Supabase (Project
+// Settings > API Keys / Data API). Ya rellenado: no hace
+// falta tocar este archivo en cada actualizacion.
 // =========================================================
 window.NAROMI_CONFIG = {
   SUPABASE_URL: "https://uxybflnzxlqeduiqznfd.supabase.co",

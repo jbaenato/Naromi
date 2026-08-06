@@ -53,20 +53,90 @@ function formField({ label, type = "text", name, options, value = "", required =
   return wrap;
 }
 
-/** currentValue: "si" | "no" | undefined (asi es como queda guardado en el objeto "data" del wizard) */
+/**
+ * Pregunta Si/No obligatoria. Si no hay un valor previo, queda
+ * marcada "No" por defecto (asi lo pidio Jose: todas las
+ * preguntas obligatorias, arrancando en "No").
+ * currentValue: "si" | "no" | undefined
+ */
 function yesNoRow(label, name, currentValue) {
+  const value = currentValue === "si" ? "si" : "no";
   const wrap = el("div", { class: "check-row" });
   wrap.appendChild(el("span", {}, label));
   const group = el("div", { class: "pill-group" });
   ["si", "no"].forEach((v) => {
     const lbl = el("label", {});
     const input = el("input", { type: "radio", name, value: v });
-    if (currentValue === v) input.checked = true;
+    input.required = true;
+    if (value === v) input.checked = true;
     lbl.appendChild(input);
     lbl.appendChild(document.createTextNode(v === "si" ? "Si" : "No"));
     group.appendChild(lbl);
   });
   wrap.appendChild(group);
+  return wrap;
+}
+
+/**
+ * Pregunta Si/No + campo de texto ligado. El campo empieza
+ * deshabilitado; se habilita y se vuelve obligatorio solo si
+ * se responde "Si". Al volver a "No" se deshabilita y se
+ * vacia, para no guardar texto que ya no aplica.
+ *
+ * fieldDef: mismo objeto que espera formField() (label, name,
+ * type, placeholder...), sin "required" (se calcula solo).
+ */
+function conditionalField(label, yesNoName, currentYesNo, fieldDef) {
+  const value = currentYesNo === "si" ? "si" : "no";
+  const wrap = el("div", {});
+  wrap.appendChild(yesNoRow(label, yesNoName, value));
+
+  const fieldWrap = formField({ ...fieldDef });
+  const input = fieldWrap.querySelector("input, textarea, select");
+  wrap.appendChild(fieldWrap);
+
+  function sync(v) {
+    const enabled = v === "si";
+    input.disabled = !enabled;
+    input.required = enabled;
+    fieldWrap.classList.toggle("field-disabled", !enabled);
+    if (!enabled) input.value = "";
+  }
+  sync(value);
+
+  wrap.querySelectorAll(`input[name="${yesNoName}"]`).forEach((radio) => {
+    radio.addEventListener("change", () => sync(radio.value));
+  });
+
+  return wrap;
+}
+
+/**
+ * Select + campo de texto ligado (ej. "Pabellon auricular" ->
+ * "Puntos tratados"). El campo se habilita y se vuelve
+ * obligatorio en cuanto se elige una opcion del select.
+ */
+function conditionalFieldFromSelect(selectDef, fieldDef, currentValue) {
+  const wrap = el("div", {});
+  const selectWrap = formField({ ...selectDef, type: "select", value: currentValue });
+  const select = selectWrap.querySelector("select");
+  wrap.appendChild(selectWrap);
+
+  const fieldWrap = formField({ ...fieldDef });
+  const input = fieldWrap.querySelector("input, textarea");
+  wrap.appendChild(fieldWrap);
+
+  function sync(v) {
+    const enabled = !!v;
+    input.disabled = !enabled;
+    input.required = enabled;
+    fieldWrap.classList.toggle("field-disabled", !enabled);
+    if (!enabled) input.value = "";
+  }
+  sync(currentValue);
+
+  select.addEventListener("change", () => sync(select.value));
+
   return wrap;
 }
 
