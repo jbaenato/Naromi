@@ -5,7 +5,7 @@
 // cachean respuestas de la API).
 // =========================================================
 
-const CACHE_NAME = "naromi-cache-v4";
+const CACHE_NAME = "naromi-cache-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -22,6 +22,8 @@ const ASSETS = [
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./img/bodymap-front.jpg",
+  "./img/bodymap-back.jpg",
 ];
 
 self.addEventListener("install", (event) => {
