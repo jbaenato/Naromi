@@ -5,7 +5,7 @@
 // cachean respuestas de la API).
 // =========================================================
 
-const CACHE_NAME = "naromi-cache-v2";
+const CACHE_NAME = "naromi-cache-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,8 @@ const ASSETS = [
   "./js/config.js",
   "./js/supabase.js",
   "./js/utils.js",
+  "./js/wizard.js",
+  "./js/bodyMap.js",
   "./js/clientForm.js",
   "./js/sessionForm.js",
   "./js/admin.js",
@@ -40,6 +42,8 @@ self.addEventListener("fetch", (event) => {
   if (url.hostname.endsWith(".supabase.co")) return;
 
   // Red primero, y solo si falla (sin conexion) usamos la copia en cache.
+  // Asi, cuando se edita config.js u otro archivo y se publica de nuevo,
+  // la app siempre carga la version mas reciente en cuanto hay internet.
   event.respondWith(
     fetch(event.request)
       .then((response) => {

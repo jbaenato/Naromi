@@ -6,8 +6,9 @@ No usa React ni ningun framework: es HTML, CSS y JavaScript simple, asi que no h
 
 ## Que incluye
 
-- `index.html`, `css/`, `js/` — la aplicacion (formulario de ficha, formulario de sesion, panel de administracion).
-- `sql/schema.sql` — script para crear las tablas en Supabase.
+- `index.html`, `css/`, `js/` — la aplicacion (formulario de ficha por pasos, formulario de sesion por pasos, panel de administracion).
+- `sql/schema.sql` — script para crear las tablas en Supabase (proyecto nuevo).
+- `sql/migracion_v1_a_v2.sql` — script para actualizar una base de datos que ya tenias con la version anterior de la app, sin perder los datos guardados.
 - `manifest.json`, `sw.js`, `icons/` — hacen que la app se pueda "instalar" en el movil como un icono mas, funcionando a pantalla completa.
 
 ## Paso 1 - Crear la base de datos (Supabase, gratis)
@@ -15,10 +16,10 @@ No usa React ni ningun framework: es HTML, CSS y JavaScript simple, asi que no h
 1. Ve a [supabase.com](https://supabase.com) y crea una cuenta gratuita.
 2. Crea un nuevo proyecto (elige una region cercana, ej. Europa).
 3. Cuando el proyecto este listo, entra en **SQL Editor > New query**.
-4. Copia y pega todo el contenido de `sql/schema.sql` y pulsa **Run**. Esto crea las tablas `clients` y `sessions`.
-5. Ve a **Project Settings > API**. Copia:
-   - **Project URL**
-   - **anon public key**
+4. Si es un proyecto nuevo: copia y pega todo el contenido de `sql/schema.sql` y pulsa **Run**. Esto crea las tablas `clients` y `sessions`.
+   Si ya tenias la version anterior con datos reales: usa en su lugar `sql/migracion_v1_a_v2.sql`.
+5. Ve a **Project Settings > API Keys**. Copia la **Publishable key** (empieza por `sb_publishable_...`; en proyectos antiguos puede llamarse "anon public").
+6. Ve a **Project Settings > Data API** y copia la **Project URL** (termina en `.supabase.co`, sin nada detras).
 
 ## Paso 2 - Conectar la app a la base de datos
 
@@ -57,9 +58,17 @@ Cada vez que quieras actualizar la app, vuelve a arrastrar la carpeta a Netlify 
 
 ## Como se organiza la informacion
 
-- **Nueva ficha**: se rellena una vez por cliente (datos personales, anamnesis, habitos, evaluacion inicial, tratamientos alternativos, consentimiento). Se guarda en la tabla `clients`.
-- **Nueva sesion**: se rellena en cada visita (tratamiento realizado, medidas de maderoterapia, recomendaciones, proxima cita). Busca al cliente ya creado y guarda una fila nueva en la tabla `sessions`, enlazada a su ficha.
-- **Panel / Clientes**: lista todos los clientes, permite buscar, ver el historial de sesiones de cada uno, y **exportar a CSV** (se abre directamente en Excel) tanto el listado completo de clientes como el de sesiones — listo para analizar tendencias, tratamientos mas usados, evolucion de medidas, etc.
+La app funciona como un asistente por pasos (una pantalla por pregunta, con botones Atras/Siguiente), no como un formulario largo con scroll. Esto la hace mas comoda en movil.
+
+- **Nueva ficha** (una vez por cliente): datos personales y, segun el tipo de tratamiento que elijas, unos pasos u otros:
+  - **Quiromasaje**: anamnesis (antecedentes generales), evaluacion inicial, tratamientos alternativos, consentimiento.
+  - **Maderoterapia**: habitos y estilo de vida, primera toma de medidas (se guarda automaticamente como su sesion numero 1), tratamientos alternativos, proxima cita, consentimiento.
+  Se guarda en la tabla `clients`.
+- **Nueva sesion** (en cada visita): buscas al cliente y, segun el tipo guardado en su ficha:
+  - **Quiromasaje**: motivo de la consulta (con un mapa corporal tocable para marcar la zona de dolor, en vez de escribirla), tratamiento realizado, recomendaciones, proxima cita.
+  - **Maderoterapia**: toma de medidas de esa sesion, proxima cita.
+  Cada sesion se guarda como una fila nueva en la tabla `sessions`, enlazada a la ficha del cliente.
+- **Panel / Clientes**: lista todos los clientes (con su tipo de tratamiento), permite buscar, ver el historial de sesiones de cada uno, y **exportar a CSV** (se abre directamente en Excel) tanto el listado completo de clientes como el de sesiones — listo para analizar tendencias, tratamientos mas usados, evolucion de medidas, etc.
 
 ## Seguridad y proximos pasos
 
