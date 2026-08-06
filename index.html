@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Naromi | Historia Clinica del Cliente</title>
+<meta name="description" content="Historia clinica digital para Naromi Quiromasaje y Bienestar" />
+<meta name="theme-color" content="#c17a63" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div>
+      <h1>Naromi</h1>
+      <span>Quiromasaje y bienestar</span>
+    </div>
+  </div>
+  <div id="connStatus" class="badge">verificando...</div>
+</header>
+
+<nav class="tabs">
+  <button data-view="ficha" class="active">Nueva ficha</button>
+  <button data-view="sesion">Nueva sesion</button>
+  <button data-view="admin">Panel / Clientes</button>
+</nav>
+
+<main id="app"></main>
+
+<div id="installBanner" class="install-banner" style="display:none; margin: 0 16px;">
+  <span>Instala Naromi en tu movil para acceso rapido</span>
+  <button id="installBtn">Instalar</button>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/clientForm.js"></script>
+<script src="js/sessionForm.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
