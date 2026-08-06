@@ -337,6 +337,149 @@ table.data tbody tr:hover { background: var(--cream); }
   cursor: pointer;
 }
 
+/* ---------------- Wizard (asistente por pasos) ---------------- */
+
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wizard-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.wizard-dot.active { background: var(--coral); width: 12px; height: 12px; }
+.wizard-dot.done { background: var(--sage); }
+
+.wizard-step-count {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.wizard-body { min-height: 200px; }
+
+.wizard-step {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.wizard-step-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  color: var(--coral-dark);
+}
+
+.wizard-step-subtitle {
+  margin: 0 0 14px;
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.wizard-nav button.primary { flex: 1; }
+.wizard-nav button.secondary { flex: 0 0 auto; }
+
+/* ---------------- Selector de tipo de tratamiento ---------------- */
+
+.treatment-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.treatment-card {
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  background: var(--cream);
+  transition: border-color 0.15s, background 0.15s;
+}
+.treatment-card.selected {
+  border-color: var(--coral);
+  background: #fdf0ea;
+}
+.treatment-card h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--coral-dark);
+}
+.treatment-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------------- Mapa corporal ---------------- */
+
+.bodymap-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.bodymap-toggle button.active {
+  background: var(--coral);
+  color: #fff;
+  border-color: var(--coral);
+}
+
+.bodymap-svg {
+  display: flex;
+  justify-content: center;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.bodymap-figure {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+}
+
+.bodymap-zone {
+  fill: #d9cdbf;
+  stroke: #b3a48f;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.12s;
+}
+.bodymap-zone:hover { fill: #e3ac95; }
+.bodymap-zone.selected { fill: var(--coral); stroke: var(--coral-dark); }
+
+.bodymap-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bodymap-chip {
+  background: var(--coral);
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
 @media (max-width: 480px) {
   main { padding: 14px 10px 80px; }
   .card { padding: 16px; }

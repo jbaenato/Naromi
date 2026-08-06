@@ -53,14 +53,15 @@ function formField({ label, type = "text", name, options, value = "", required =
   return wrap;
 }
 
-function yesNoRow(label, name, checkedYes) {
+/** currentValue: "si" | "no" | undefined (asi es como queda guardado en el objeto "data" del wizard) */
+function yesNoRow(label, name, currentValue) {
   const wrap = el("div", { class: "check-row" });
   wrap.appendChild(el("span", {}, label));
   const group = el("div", { class: "pill-group" });
   ["si", "no"].forEach((v) => {
     const lbl = el("label", {});
     const input = el("input", { type: "radio", name, value: v });
-    if ((v === "si" && checkedYes === true) || (v === "no" && checkedYes === false)) input.checked = true;
+    if (currentValue === v) input.checked = true;
     lbl.appendChild(input);
     lbl.appendChild(document.createTextNode(v === "si" ? "Si" : "No"));
     group.appendChild(lbl);
@@ -73,6 +74,30 @@ function getYesNo(form, name) {
   const val = form.querySelector(`input[name="${name}"]:checked`);
   if (!val) return null;
   return val.value === "si";
+}
+
+/** Convierte el valor "si"/"no" guardado por el wizard en boolean/null para la base de datos. */
+function ynVal(data, name) {
+  if (data[name] === "si") return true;
+  if (data[name] === "no") return false;
+  return null;
+}
+
+/** Numero o null si esta vacio. */
+function numVal(data, name) {
+  const v = data[name];
+  return v !== undefined && v !== null && v !== "" ? Number(v) : null;
+}
+
+/** Texto o null si esta vacio. */
+function strVal(data, name) {
+  const v = data[name];
+  return v !== undefined && v !== null && v !== "" ? v : null;
+}
+
+/** Boolean (checkbox) o false si no esta definido. */
+function boolVal(data, name) {
+  return data[name] === true;
 }
 
 function painScale(name, value) {

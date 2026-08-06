@@ -1,295 +1,532 @@
 // =========================================================
-// Seccion "Nueva ficha" - Historia clinica del cliente
-// Secciones 1, 2, 3, 4 y 6 del formulario en papel, mas
-// consentimiento informado / RGPD.
+// Seccion "Nueva ficha" - se rellena UNA VEZ por cliente,
+// como un asistente por pasos (mejor para movil que un
+// formulario largo con scroll). Segun el tipo de tratamiento
+// elegido, se muestran unos pasos u otros:
+//
+//  - Quiromasaje: anamnesis (historico), evaluacion inicial,
+//    tratamientos alternativos, consentimiento.
+//  - Maderoterapia: habitos y estilo de vida, primera toma de
+//    medidas, tratamientos alternativos, proxima cita,
+//    consentimiento. La primera toma de medidas se guarda
+//    automaticamente como la sesion numero 1 de ese cliente.
 // =========================================================
 
 function renderClientForm(root) {
   root.innerHTML = "";
 
-  const form = el("form", { id: "clientForm" });
-
-  // ---- Aviso de configuracion ----
   if (!window.isSupabaseConfigured()) {
-    form.appendChild(
+    root.appendChild(
       el(
         "div",
         { class: "config-warning" },
-        "Todavia no has conectado la base de datos. Edita js/config.js con la URL y la clave anon de tu proyecto Supabase para poder guardar datos. Mientras tanto puedes ver el formulario, pero no se guardara nada."
+        "Todavia no has conectado la base de datos. Edita js/config.js con la URL y la clave de tu proyecto Supabase para poder guardar datos."
       )
     );
   }
 
-  // ---- 1. Datos personales ----
-  const s1 = el("div", { class: "card" });
-  s1.appendChild(sectionTitle(1, "Datos personales"));
-  s1.appendChild(formField({ label: "Nombre", name: "nombre", required: true }));
-  s1.appendChild(formField({ label: "Apellidos", name: "apellidos" }));
-  s1.appendChild(formField({ label: "Direccion", name: "direccion" }));
-  const row1 = el("div", { class: "row" });
-  row1.appendChild(formField({ label: "Telefono", name: "telefono", type: "tel" }));
-  row1.appendChild(formField({ label: "Email", name: "email", type: "email" }));
-  s1.appendChild(row1);
-  const row2 = el("div", { class: "row" });
-  row2.appendChild(formField({ label: "Fecha de nacimiento", name: "fecha_nacimiento", type: "date" }));
-  row2.appendChild(formField({ label: "Profesion", name: "profesion" }));
-  s1.appendChild(row2);
-  form.appendChild(s1);
+  const introSteps = [
+    {
+      title: "Datos personales",
+      build: (stepEl, data) => {
+        stepEl.appendChild(formField({ label: "Nombre", name: "nombre", required: true, value: data.nombre }));
+        stepEl.appendChild(
+          formField({ label: "Apellidos", name: "apellidos", required: true, value: data.apellidos })
+        );
+        stepEl.appendChild(
+          formField({ label: "Direccion", name: "direccion", required: true, value: data.direccion })
+        );
+        const row1 = el("div", { class: "row" });
+        row1.appendChild(
+          formField({ label: "Telefono", name: "telefono", type: "tel", required: true, value: data.telefono })
+        );
+        row1.appendChild(formField({ label: "Email (opcional)", name: "email", type: "email", value: data.email }));
+        stepEl.appendChild(row1);
+        const row2 = el("div", { class: "row" });
+        row2.appendChild(
+          formField({
+            label: "Fecha de nacimiento",
+            name: "fecha_nacimiento",
+            type: "date",
+            required: true,
+            value: data.fecha_nacimiento,
+          })
+        );
+        row2.appendChild(formField({ label: "Profesion (opcional)", name: "profesion", value: data.profesion }));
+        stepEl.appendChild(row2);
+      },
+    },
+    {
+      title: "Tipo de tratamiento",
+      subtitle: "Esto decide que preguntas te haremos a continuacion.",
+      build: (stepEl, data) => buildTipoTratamientoStep(stepEl, data),
+      onNext: (stepEl, data) => {
+        if (!data.tipo_tratamiento) {
+          showToast("Selecciona un tipo de tratamiento para continuar", true);
+          return false;
+        }
+        // Si el usuario ya habia rellenado pasos del otro tipo y cambia de
+        // opinion, limpiamos esos campos para no guardar datos a medias.
+        clearOppositeFields(data, data.tipo_tratamiento);
+        const steps =
+          data.tipo_tratamiento === "quiromasaje" ? quiromasajeFichaSteps() : maderoterapiaFichaSteps();
+        return { insertSteps: steps, group: "tipo" };
+      },
+    },
+  ];
 
-  // ---- 2. Anamnesis ----
-  const s2 = el("div", { class: "card" });
-  s2.appendChild(sectionTitle(2, "Anamnesis"));
-  [
-    ["Problemas de columna", "problemas_columna"],
-    ["Dolores de cabeza frecuentes", "dolores_cabeza"],
-    ["Manos dormidas", "manos_dormidas"],
-    ["Duermes bien", "duermes_bien"],
-    ["Aprietas los dientes", "aprietas_dientes"],
-    ["Alergia", "alergia"],
-  ].forEach(([label, name]) => s2.appendChild(yesNoRow(label, name)));
-
-  s2.appendChild(formField({ label: "¿Padece alguna enfermedad?", name: "padece_enfermedad", type: "textarea" }));
-
-  s2.appendChild(yesNoRow("¿Tomas medicacion actualmente?", "toma_medicacion"));
-  s2.appendChild(formField({ label: "¿Cual?", name: "medicacion_cual" }));
-
-  s2.appendChild(yesNoRow("¿Tienes alergias?", "tiene_alergias"));
-  s2.appendChild(formField({ label: "¿A que?", name: "alergia_a" }));
-
-  s2.appendChild(yesNoRow("¿Has tenido cirugia, fractura o lesion importante?", "cirugia_fractura"));
-  s2.appendChild(formField({ label: "¿Cual y cuando?", name: "cirugia_detalle" }));
-
-  s2.appendChild(formField({ label: "¿Que duele?", name: "que_duele" }));
-  s2.appendChild(formField({ label: "¿Desde cuando duele?", name: "desde_cuando" }));
-  s2.appendChild(formField({ label: "¿Como es el dolor?", name: "como_es_dolor" }));
-  s2.appendChild(painScale("intensidad_dolor", ""));
-  s2.appendChild(
-    formField({
-      label: "Zonas donde sientes dolor o molestia",
-      name: "zonas_dolor",
-      type: "textarea",
-      placeholder: "Describe la/s zona/s del cuerpo",
-    })
-  );
-  s2.appendChild(formField({ label: "Tipo de tratamiento que se va a realizar", name: "tipo_tratamiento" }));
-
-  const objWrap = el("div", { class: "field" });
-  objWrap.appendChild(el("label", {}, "Objetivo del tratamiento"));
-  const objGroup = el("div", { class: "pill-group" });
-  [
-    ["Aliviar dolor", "objetivo_aliviar_dolor"],
-    ["Relajacion", "objetivo_relajacion"],
-    ["Reducir contracturas", "objetivo_reducir_contracturas"],
-    ["Estres", "objetivo_estres"],
-    ["Mejorar movilidad", "objetivo_mejorar_movilidad"],
-  ].forEach(([label, name]) => objGroup.appendChild(checkboxPill(label, name)));
-  objWrap.appendChild(objGroup);
-  s2.appendChild(objWrap);
-  s2.appendChild(formField({ label: "Otro objetivo", name: "objetivo_otro" }));
-  s2.appendChild(formField({ label: "Observaciones", name: "observaciones_anamnesis", type: "textarea" }));
-  form.appendChild(s2);
-
-  // ---- 3. Habitos y estilo de vida ----
-  const s3 = el("div", { class: "card" });
-  s3.appendChild(sectionTitle(3, "Habitos y estilo de vida"));
-  s3.appendChild(
-    formField({
-      label: "Actividad fisica",
-      name: "actividad_fisica",
-      type: "select",
-      options: ["Ninguna", "Ligera", "Moderada", "Intensa"],
-    })
-  );
-  s3.appendChild(formField({ label: "Habitos alimentarios", name: "habitos_alimentarios", type: "textarea" }));
-  s3.appendChild(formField({ label: "Analisis de la piel", name: "analisis_piel" }));
-  s3.appendChild(yesNoRow("¿Bebe suficiente agua al dia?", "bebe_agua"));
-  s3.appendChild(formField({ label: "Cantidad aproximada", name: "cantidad_agua" }));
-  s3.appendChild(yesNoRow("Fuma", "fuma"));
-  s3.appendChild(formField({ label: "¿Cuantos al dia?", name: "cigarrillos_dia" }));
-  s3.appendChild(yesNoRow("Bebe alcohol", "bebe_alcohol"));
-  s3.appendChild(formField({ label: "¿Con que frecuencia?", name: "frecuencia_alcohol" }));
-  s3.appendChild(
-    formField({ label: "Calidad del sueno", name: "calidad_sueno", type: "select", options: ["Buena", "Regular", "Mala"] })
-  );
-  s3.appendChild(
-    formField({ label: "Nivel de estres", name: "nivel_estres", type: "select", options: ["Bajo", "Medio", "Alto"] })
-  );
-  form.appendChild(s3);
-
-  // ---- 4. Evaluacion inicial ----
-  const s4 = el("div", { class: "card" });
-  s4.appendChild(sectionTitle(4, "Evaluacion inicial"));
-  s4.appendChild(formField({ label: "Observacion postural", name: "observacion_postural", type: "textarea" }));
-  s4.appendChild(formField({ label: "Marcha", name: "marcha" }));
-  s4.appendChild(formField({ label: "Limitacion de movimiento", name: "limitacion_movimiento", type: "textarea" }));
-  s4.appendChild(formField({ label: "Acortamientos musculares", name: "acortamientos_musculares", type: "textarea" }));
-
-  const palp = el("div", { class: "card", style: "background:#fbf6f1;" });
-  palp.appendChild(el("h2", {}, "Hallazgos a la palpacion"));
-  s4.appendChild(palp);
-  palp.appendChild(yesNoRow("Puntos gatillo", "puntos_gatillo"));
-  palp.appendChild(formField({ label: "¿Donde?", name: "puntos_gatillo_donde" }));
-  palp.appendChild(yesNoRow("Contracturas", "contracturas"));
-  palp.appendChild(formField({ label: "¿Donde?", name: "contracturas_donde" }));
-  palp.appendChild(yesNoRow("Inflamacion", "inflamacion"));
-  palp.appendChild(formField({ label: "¿Donde?", name: "inflamacion_donde" }));
-  palp.appendChild(
-    formField({
-      label: "Temperatura de la piel",
-      name: "temperatura_piel",
-      type: "select",
-      options: ["Normal", "Aumentada", "Disminuida"],
-    })
-  );
-  palp.appendChild(formField({ label: "Otros hallazgos", name: "otros_hallazgos", type: "textarea" }));
-  form.appendChild(s4);
-
-  // ---- 6. Tratamientos alternativos ----
-  const s6 = el("div", { class: "card" });
-  s6.appendChild(sectionTitle(6, "Tratamientos alternativos"));
-  s6.appendChild(el("h2", { style: "border:none;font-size:0.9rem;" }, "Kinesiotape"));
-  s6.appendChild(yesNoRow("Hipersensibilidad al kinesiotape", "kinesiotape_hipersensibilidad"));
-  s6.appendChild(formField({ label: "Zona tratada", name: "kinesiotape_zona" }));
-  s6.appendChild(el("h2", { style: "border:none;font-size:0.9rem;margin-top:16px;" }, "Auriculoterapia"));
-  s6.appendChild(
-    formField({
-      label: "Pabellon auricular dominante",
-      name: "auriculoterapia_pabellon",
-      type: "select",
-      options: ["Derecho", "Izquierdo"],
-    })
-  );
-  s6.appendChild(formField({ label: "Puntos tratados", name: "auriculoterapia_puntos" }));
-  form.appendChild(s6);
-
-  // ---- Consentimiento ----
-  const s7 = el("div", { class: "card" });
-  s7.appendChild(sectionTitle("", "Consentimiento informado y proteccion de datos (RGPD)"));
-  s7.appendChild(
-    el(
-      "p",
-      { class: "muted" },
-      "Declaro que la informacion proporcionada es verdadera y autorizo a Naromi Quiro-Masaje y Bienestar a realizar el tratamiento que se considere mas adecuado para mi bienestar. Entiendo que el quiromasaje no sustituye un tratamiento medico y me comprometo a informar de cualquier cambio en mi estado de salud. En cumplimiento del RGPD, mis datos seran tratados de forma confidencial."
-    )
-  );
-  const consentGroup = el("div", { class: "pill-group" });
-  consentGroup.appendChild(checkboxPill("Doy mi consentimiento informado", "consentimiento_firmado"));
-  consentGroup.appendChild(checkboxPill("He leido y acepto la politica de privacidad (RGPD)", "rgpd_aceptado"));
-  s7.appendChild(consentGroup);
-  form.appendChild(s7);
-
-  form.appendChild(el("button", { type: "submit", class: "primary" }, "Guardar ficha de cliente"));
-
-  root.appendChild(form);
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    await submitClientForm(form);
+  createWizard(root, {
+    data: {},
+    steps: introSteps,
+    submitLabel: "Guardar ficha",
+    onSubmit: async (data) => {
+      await submitClientWizard(data);
+    },
   });
 }
 
-function sectionTitle(num, text) {
-  const h2 = el("h2", {});
-  if (num !== "") h2.appendChild(el("span", { class: "num" }, String(num)));
-  h2.appendChild(document.createTextNode(text));
-  return h2;
+const QUIRO_ONLY_FIELDS = [
+  "problemas_columna",
+  "dolores_cabeza",
+  "manos_dormidas",
+  "duermes_bien",
+  "aprietas_dientes",
+  "padece_enfermedad",
+  "toma_medicacion",
+  "medicacion_cual",
+  "tiene_alergias",
+  "alergia_a",
+  "cirugia_fractura",
+  "cirugia_detalle",
+  "observacion_postural",
+  "marcha",
+  "limitacion_movimiento",
+  "acortamientos_musculares",
+  "puntos_gatillo",
+  "puntos_gatillo_donde",
+  "contracturas",
+  "contracturas_donde",
+  "inflamacion",
+  "inflamacion_donde",
+  "temperatura_piel",
+  "otros_hallazgos",
+];
+
+const MADERO_ONLY_FIELDS = [
+  "actividad_fisica",
+  "habitos_alimentarios",
+  "analisis_piel",
+  "bebe_agua",
+  "cantidad_agua",
+  "fuma",
+  "cigarrillos_dia",
+  "bebe_alcohol",
+  "frecuencia_alcohol",
+  "calidad_sueno",
+  "nivel_estres",
+  "medida_cintura",
+  "medida_cadera_abdomen",
+  "medida_cadera_pierna_dcha",
+  "medida_cadera_pierna_izq",
+  "medida_rodilla_dcha",
+  "medida_rodilla_izq",
+  "medida_otros",
+  "proxima_cita_fecha",
+  "proxima_cita_hora",
+];
+
+/** Borra del objeto "data" los campos del tipo de tratamiento NO elegido. */
+function clearOppositeFields(data, tipoElegido) {
+  const toClear = tipoElegido === "quiromasaje" ? MADERO_ONLY_FIELDS : QUIRO_ONLY_FIELDS;
+  toClear.forEach((name) => delete data[name]);
 }
 
-async function submitClientForm(form) {
-  const fd = new FormData(form);
-  const get = (name) => fd.get(name) || null;
+function buildTipoTratamientoStep(stepEl, data) {
+  const wrap = el("div", { class: "treatment-choice" });
+  const hidden = el("input", { type: "hidden", name: "tipo_tratamiento", value: data.tipo_tratamiento || "" });
 
-  const payload = {
-    nombre: get("nombre"),
-    apellidos: get("apellidos"),
-    direccion: get("direccion"),
-    telefono: get("telefono"),
-    email: get("email"),
-    fecha_nacimiento: get("fecha_nacimiento"),
-    profesion: get("profesion"),
+  const cardQuiro = el("div", {
+    class: "treatment-card" + (data.tipo_tratamiento === "quiromasaje" ? " selected" : ""),
+  });
+  cardQuiro.appendChild(el("h3", {}, "Quiromasaje"));
+  cardQuiro.appendChild(
+    el("p", {}, "Anamnesis, evaluacion inicial y tratamiento manual. El motivo de cada visita se registra sesion a sesion.")
+  );
 
-    problemas_columna: getYesNo(form, "problemas_columna"),
-    dolores_cabeza: getYesNo(form, "dolores_cabeza"),
-    manos_dormidas: getYesNo(form, "manos_dormidas"),
-    duermes_bien: getYesNo(form, "duermes_bien"),
-    aprietas_dientes: getYesNo(form, "aprietas_dientes"),
-    alergia: getYesNo(form, "alergia"),
-    padece_enfermedad: get("padece_enfermedad"),
-    toma_medicacion: getYesNo(form, "toma_medicacion"),
-    medicacion_cual: get("medicacion_cual"),
-    tiene_alergias: getYesNo(form, "tiene_alergias"),
-    alergia_a: get("alergia_a"),
-    cirugia_fractura: getYesNo(form, "cirugia_fractura"),
-    cirugia_detalle: get("cirugia_detalle"),
-    que_duele: get("que_duele"),
-    desde_cuando: get("desde_cuando"),
-    como_es_dolor: get("como_es_dolor"),
-    intensidad_dolor: fd.get("intensidad_dolor") ? Number(fd.get("intensidad_dolor")) : null,
-    zonas_dolor: get("zonas_dolor"),
-    tipo_tratamiento: get("tipo_tratamiento"),
-    objetivo_aliviar_dolor: form.querySelector('[name="objetivo_aliviar_dolor"]').checked,
-    objetivo_relajacion: form.querySelector('[name="objetivo_relajacion"]').checked,
-    objetivo_reducir_contracturas: form.querySelector('[name="objetivo_reducir_contracturas"]').checked,
-    objetivo_estres: form.querySelector('[name="objetivo_estres"]').checked,
-    objetivo_mejorar_movilidad: form.querySelector('[name="objetivo_mejorar_movilidad"]').checked,
-    objetivo_otro: get("objetivo_otro"),
-    observaciones_anamnesis: get("observaciones_anamnesis"),
+  const cardMadero = el("div", {
+    class: "treatment-card" + (data.tipo_tratamiento === "maderoterapia" ? " selected" : ""),
+  });
+  cardMadero.appendChild(el("h3", {}, "Maderoterapia"));
+  cardMadero.appendChild(
+    el("p", {}, "Habitos y estilo de vida, mas seguimiento de medidas corporales sesion a sesion.")
+  );
 
-    actividad_fisica: get("actividad_fisica"),
-    habitos_alimentarios: get("habitos_alimentarios"),
-    analisis_piel: get("analisis_piel"),
-    bebe_agua: getYesNo(form, "bebe_agua"),
-    cantidad_agua: get("cantidad_agua"),
-    fuma: getYesNo(form, "fuma"),
-    cigarrillos_dia: get("cigarrillos_dia"),
-    bebe_alcohol: getYesNo(form, "bebe_alcohol"),
-    frecuencia_alcohol: get("frecuencia_alcohol"),
-    calidad_sueno: get("calidad_sueno"),
-    nivel_estres: get("nivel_estres"),
-
-    observacion_postural: get("observacion_postural"),
-    marcha: get("marcha"),
-    limitacion_movimiento: get("limitacion_movimiento"),
-    acortamientos_musculares: get("acortamientos_musculares"),
-    puntos_gatillo: getYesNo(form, "puntos_gatillo"),
-    puntos_gatillo_donde: get("puntos_gatillo_donde"),
-    contracturas: getYesNo(form, "contracturas"),
-    contracturas_donde: get("contracturas_donde"),
-    inflamacion: getYesNo(form, "inflamacion"),
-    inflamacion_donde: get("inflamacion_donde"),
-    temperatura_piel: get("temperatura_piel"),
-    otros_hallazgos: get("otros_hallazgos"),
-
-    kinesiotape_hipersensibilidad: getYesNo(form, "kinesiotape_hipersensibilidad"),
-    kinesiotape_zona: get("kinesiotape_zona"),
-    auriculoterapia_pabellon: get("auriculoterapia_pabellon"),
-    auriculoterapia_puntos: get("auriculoterapia_puntos"),
-
-    consentimiento_firmado: form.querySelector('[name="consentimiento_firmado"]').checked,
-    consentimiento_fecha: new Date().toISOString().slice(0, 10),
-    rgpd_aceptado: form.querySelector('[name="rgpd_aceptado"]').checked,
-  };
-
-  if (!payload.nombre) {
-    showToast("El nombre es obligatorio", true);
-    return;
+  function select(type) {
+    hidden.value = type;
+    data.tipo_tratamiento = type;
+    cardQuiro.classList.toggle("selected", type === "quiromasaje");
+    cardMadero.classList.toggle("selected", type === "maderoterapia");
   }
+  cardQuiro.addEventListener("click", () => select("quiromasaje"));
+  cardMadero.addEventListener("click", () => select("maderoterapia"));
+
+  wrap.appendChild(cardQuiro);
+  wrap.appendChild(cardMadero);
+  wrap.appendChild(hidden);
+  stepEl.appendChild(wrap);
+}
+
+// ---------------------------------------------------------
+// Pasos exclusivos de Quiromasaje
+// ---------------------------------------------------------
+function quiromasajeFichaSteps() {
+  return [
+    {
+      title: "Anamnesis",
+      subtitle: "Antecedentes generales del cliente (se rellena una sola vez).",
+      build: (stepEl, data) => {
+        [
+          ["Problemas de columna", "problemas_columna"],
+          ["Dolores de cabeza frecuentes", "dolores_cabeza"],
+          ["Manos dormidas", "manos_dormidas"],
+          ["Duermes bien", "duermes_bien"],
+          ["Aprietas los dientes", "aprietas_dientes"],
+        ].forEach(([label, name]) => stepEl.appendChild(yesNoRow(label, name, data[name])));
+
+        stepEl.appendChild(
+          formField({
+            label: "¿Padece alguna enfermedad?",
+            name: "padece_enfermedad",
+            type: "textarea",
+            value: data.padece_enfermedad,
+          })
+        );
+        stepEl.appendChild(yesNoRow("¿Tomas medicacion actualmente?", "toma_medicacion", data.toma_medicacion));
+        stepEl.appendChild(formField({ label: "¿Cual?", name: "medicacion_cual", value: data.medicacion_cual }));
+        stepEl.appendChild(yesNoRow("¿Tienes alergias?", "tiene_alergias", data.tiene_alergias));
+        stepEl.appendChild(formField({ label: "¿A que?", name: "alergia_a", value: data.alergia_a }));
+        stepEl.appendChild(
+          yesNoRow("¿Has tenido cirugia, fractura o lesion importante?", "cirugia_fractura", data.cirugia_fractura)
+        );
+        stepEl.appendChild(
+          formField({ label: "¿Cual y cuando?", name: "cirugia_detalle", value: data.cirugia_detalle })
+        );
+      },
+    },
+    {
+      title: "Evaluacion inicial",
+      build: (stepEl, data) => {
+        stepEl.appendChild(
+          formField({
+            label: "Observacion postural",
+            name: "observacion_postural",
+            type: "textarea",
+            value: data.observacion_postural,
+          })
+        );
+        stepEl.appendChild(formField({ label: "Marcha", name: "marcha", value: data.marcha }));
+        stepEl.appendChild(
+          formField({
+            label: "Limitacion de movimiento",
+            name: "limitacion_movimiento",
+            type: "textarea",
+            value: data.limitacion_movimiento,
+          })
+        );
+        stepEl.appendChild(
+          formField({
+            label: "Acortamientos musculares",
+            name: "acortamientos_musculares",
+            type: "textarea",
+            value: data.acortamientos_musculares,
+          })
+        );
+
+        const palp = el("div", { class: "card", style: "background:#fbf6f1;margin-top:14px;" });
+        palp.appendChild(el("h2", {}, "Hallazgos a la palpacion"));
+        palp.appendChild(yesNoRow("Puntos gatillo", "puntos_gatillo", data.puntos_gatillo));
+        palp.appendChild(
+          formField({ label: "¿Donde?", name: "puntos_gatillo_donde", value: data.puntos_gatillo_donde })
+        );
+        palp.appendChild(yesNoRow("Contracturas", "contracturas", data.contracturas));
+        palp.appendChild(formField({ label: "¿Donde?", name: "contracturas_donde", value: data.contracturas_donde }));
+        palp.appendChild(yesNoRow("Inflamacion", "inflamacion", data.inflamacion));
+        palp.appendChild(formField({ label: "¿Donde?", name: "inflamacion_donde", value: data.inflamacion_donde }));
+        palp.appendChild(
+          formField({
+            label: "Temperatura de la piel",
+            name: "temperatura_piel",
+            type: "select",
+            options: ["Normal", "Aumentada", "Disminuida"],
+            value: data.temperatura_piel,
+          })
+        );
+        palp.appendChild(
+          formField({ label: "Otros hallazgos", name: "otros_hallazgos", type: "textarea", value: data.otros_hallazgos })
+        );
+        stepEl.appendChild(palp);
+      },
+    },
+    ...sharedFichaSteps(),
+    consentimientoStep(),
+  ];
+}
+
+// ---------------------------------------------------------
+// Pasos exclusivos de Maderoterapia
+// ---------------------------------------------------------
+function maderoterapiaFichaSteps() {
+  return [
+    {
+      title: "Habitos y estilo de vida",
+      build: (stepEl, data) => {
+        stepEl.appendChild(
+          formField({
+            label: "Actividad fisica",
+            name: "actividad_fisica",
+            type: "select",
+            options: ["Ninguna", "Ligera", "Moderada", "Intensa"],
+            value: data.actividad_fisica,
+          })
+        );
+        stepEl.appendChild(
+          formField({
+            label: "Habitos alimentarios",
+            name: "habitos_alimentarios",
+            type: "textarea",
+            value: data.habitos_alimentarios,
+          })
+        );
+        stepEl.appendChild(formField({ label: "Analisis de la piel", name: "analisis_piel", value: data.analisis_piel }));
+        stepEl.appendChild(yesNoRow("¿Bebe suficiente agua al dia?", "bebe_agua", data.bebe_agua));
+        stepEl.appendChild(
+          formField({ label: "Cantidad aproximada", name: "cantidad_agua", value: data.cantidad_agua })
+        );
+        stepEl.appendChild(yesNoRow("Fuma", "fuma", data.fuma));
+        stepEl.appendChild(formField({ label: "¿Cuantos al dia?", name: "cigarrillos_dia", value: data.cigarrillos_dia }));
+        stepEl.appendChild(yesNoRow("Bebe alcohol", "bebe_alcohol", data.bebe_alcohol));
+        stepEl.appendChild(
+          formField({ label: "¿Con que frecuencia?", name: "frecuencia_alcohol", value: data.frecuencia_alcohol })
+        );
+        stepEl.appendChild(
+          formField({
+            label: "Calidad del sueno",
+            name: "calidad_sueno",
+            type: "select",
+            options: ["Buena", "Regular", "Mala"],
+            value: data.calidad_sueno,
+          })
+        );
+        stepEl.appendChild(
+          formField({
+            label: "Nivel de estres",
+            name: "nivel_estres",
+            type: "select",
+            options: ["Bajo", "Medio", "Alto"],
+            value: data.nivel_estres,
+          })
+        );
+      },
+    },
+    {
+      title: "Seguimiento maderoterapia",
+      subtitle: "Primera toma de medidas (sesion 1). Todo en centimetros.",
+      build: (stepEl, data) => {
+        const r1 = el("div", { class: "row" });
+        r1.appendChild(formField({ label: "Abdomen - Cintura", name: "medida_cintura", type: "number", value: data.medida_cintura }));
+        r1.appendChild(
+          formField({ label: "Abdomen - Cadera", name: "medida_cadera_abdomen", type: "number", value: data.medida_cadera_abdomen })
+        );
+        stepEl.appendChild(r1);
+        const r2 = el("div", { class: "row" });
+        r2.appendChild(
+          formField({ label: "Piernas - Cadera Dcha.", name: "medida_cadera_pierna_dcha", type: "number", value: data.medida_cadera_pierna_dcha })
+        );
+        r2.appendChild(
+          formField({ label: "Piernas - Cadera Izq.", name: "medida_cadera_pierna_izq", type: "number", value: data.medida_cadera_pierna_izq })
+        );
+        stepEl.appendChild(r2);
+        const r3 = el("div", { class: "row" });
+        r3.appendChild(
+          formField({ label: "Piernas - Rodilla Dcha.", name: "medida_rodilla_dcha", type: "number", value: data.medida_rodilla_dcha })
+        );
+        r3.appendChild(
+          formField({ label: "Piernas - Rodilla Izq.", name: "medida_rodilla_izq", type: "number", value: data.medida_rodilla_izq })
+        );
+        stepEl.appendChild(r3);
+        stepEl.appendChild(formField({ label: "Otros", name: "medida_otros", value: data.medida_otros }));
+      },
+    },
+    ...sharedFichaSteps(),
+    {
+      title: "Proxima cita",
+      build: (stepEl, data) => {
+        const row = el("div", { class: "row" });
+        row.appendChild(
+          formField({ label: "Fecha", name: "proxima_cita_fecha", type: "date", value: data.proxima_cita_fecha })
+        );
+        row.appendChild(
+          formField({ label: "Hora", name: "proxima_cita_hora", type: "time", value: data.proxima_cita_hora })
+        );
+        stepEl.appendChild(row);
+      },
+    },
+    consentimientoStep(),
+  ];
+}
+
+// ---------------------------------------------------------
+// Pasos compartidos (tratamientos alternativos). El
+// consentimiento se anade aparte porque en maderoterapia va
+// despues de "proxima cita".
+// ---------------------------------------------------------
+function sharedFichaSteps() {
+  return [
+    {
+      title: "Tratamientos alternativos",
+      build: (stepEl, data) => {
+        stepEl.appendChild(el("h2", { style: "border:none;font-size:0.9rem;" }, "Kinesiotape"));
+        stepEl.appendChild(
+          yesNoRow("Hipersensibilidad al kinesiotape", "kinesiotape_hipersensibilidad", data.kinesiotape_hipersensibilidad)
+        );
+        stepEl.appendChild(formField({ label: "Zona tratada", name: "kinesiotape_zona", value: data.kinesiotape_zona }));
+        stepEl.appendChild(
+          el("h2", { style: "border:none;font-size:0.9rem;margin-top:16px;" }, "Auriculoterapia")
+        );
+        stepEl.appendChild(
+          formField({
+            label: "Pabellon auricular dominante",
+            name: "auriculoterapia_pabellon",
+            type: "select",
+            options: ["Derecho", "Izquierdo"],
+            value: data.auriculoterapia_pabellon,
+          })
+        );
+        stepEl.appendChild(
+          formField({ label: "Puntos tratados", name: "auriculoterapia_puntos", value: data.auriculoterapia_puntos })
+        );
+      },
+    },
+  ];
+}
+
+function consentimientoStep() {
+  return {
+    title: "Consentimiento informado y RGPD",
+    build: (stepEl, data) => {
+      stepEl.appendChild(
+        el(
+          "p",
+          { class: "muted" },
+          "Declaro que la informacion proporcionada es verdadera y autorizo a Naromi Quiro-Masaje y Bienestar a realizar el tratamiento que se considere mas adecuado para mi bienestar. Entiendo que no sustituye un tratamiento medico y me comprometo a informar de cualquier cambio en mi estado de salud. En cumplimiento del RGPD, mis datos seran tratados de forma confidencial."
+        )
+      );
+      const group = el("div", { class: "pill-group" });
+      group.appendChild(checkboxPill("Doy mi consentimiento informado", "consentimiento_firmado", data.consentimiento_firmado));
+      group.appendChild(
+        checkboxPill("He leido y acepto la politica de privacidad (RGPD)", "rgpd_aceptado", data.rgpd_aceptado)
+      );
+      stepEl.appendChild(group);
+    },
+  };
+}
+
+// ---------------------------------------------------------
+// Guardado final: crea el cliente y, si es maderoterapia,
+// crea tambien su primera sesion con las medidas ya tomadas.
+// ---------------------------------------------------------
+async function submitClientWizard(data) {
   if (!window.isSupabaseConfigured()) {
     showToast("Configura Supabase en js/config.js antes de guardar", true);
     return;
   }
+  if (!data.nombre || !data.apellidos || !data.direccion || !data.telefono || !data.fecha_nacimiento) {
+    showToast("Faltan datos personales obligatorios", true);
+    return;
+  }
 
-  const btn = form.querySelector('button[type="submit"]');
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
+  const clientPayload = {
+    nombre: data.nombre,
+    apellidos: data.apellidos,
+    direccion: data.direccion,
+    telefono: data.telefono,
+    email: strVal(data, "email"),
+    fecha_nacimiento: data.fecha_nacimiento,
+    profesion: strVal(data, "profesion"),
+    tipo_tratamiento: data.tipo_tratamiento,
+
+    problemas_columna: ynVal(data, "problemas_columna"),
+    dolores_cabeza: ynVal(data, "dolores_cabeza"),
+    manos_dormidas: ynVal(data, "manos_dormidas"),
+    duermes_bien: ynVal(data, "duermes_bien"),
+    aprietas_dientes: ynVal(data, "aprietas_dientes"),
+    padece_enfermedad: strVal(data, "padece_enfermedad"),
+    toma_medicacion: ynVal(data, "toma_medicacion"),
+    medicacion_cual: strVal(data, "medicacion_cual"),
+    tiene_alergias: ynVal(data, "tiene_alergias"),
+    alergia_a: strVal(data, "alergia_a"),
+    cirugia_fractura: ynVal(data, "cirugia_fractura"),
+    cirugia_detalle: strVal(data, "cirugia_detalle"),
+
+    observacion_postural: strVal(data, "observacion_postural"),
+    marcha: strVal(data, "marcha"),
+    limitacion_movimiento: strVal(data, "limitacion_movimiento"),
+    acortamientos_musculares: strVal(data, "acortamientos_musculares"),
+    puntos_gatillo: ynVal(data, "puntos_gatillo"),
+    puntos_gatillo_donde: strVal(data, "puntos_gatillo_donde"),
+    contracturas: ynVal(data, "contracturas"),
+    contracturas_donde: strVal(data, "contracturas_donde"),
+    inflamacion: ynVal(data, "inflamacion"),
+    inflamacion_donde: strVal(data, "inflamacion_donde"),
+    temperatura_piel: strVal(data, "temperatura_piel"),
+    otros_hallazgos: strVal(data, "otros_hallazgos"),
+
+    actividad_fisica: strVal(data, "actividad_fisica"),
+    habitos_alimentarios: strVal(data, "habitos_alimentarios"),
+    analisis_piel: strVal(data, "analisis_piel"),
+    bebe_agua: ynVal(data, "bebe_agua"),
+    cantidad_agua: strVal(data, "cantidad_agua"),
+    fuma: ynVal(data, "fuma"),
+    cigarrillos_dia: strVal(data, "cigarrillos_dia"),
+    bebe_alcohol: ynVal(data, "bebe_alcohol"),
+    frecuencia_alcohol: strVal(data, "frecuencia_alcohol"),
+    calidad_sueno: strVal(data, "calidad_sueno"),
+    nivel_estres: strVal(data, "nivel_estres"),
+
+    kinesiotape_hipersensibilidad: ynVal(data, "kinesiotape_hipersensibilidad"),
+    kinesiotape_zona: strVal(data, "kinesiotape_zona"),
+    auriculoterapia_pabellon: strVal(data, "auriculoterapia_pabellon"),
+    auriculoterapia_puntos: strVal(data, "auriculoterapia_puntos"),
+
+    consentimiento_firmado: boolVal(data, "consentimiento_firmado"),
+    consentimiento_fecha: new Date().toISOString().slice(0, 10),
+    rgpd_aceptado: boolVal(data, "rgpd_aceptado"),
+  };
+
   try {
-    await window.NaromiDB.insert("clients", payload);
+    const [client] = await window.NaromiDB.insert("clients", clientPayload);
+
+    if (data.tipo_tratamiento === "maderoterapia") {
+      const sessionPayload = {
+        client_id: client.id,
+        fecha: new Date().toISOString().slice(0, 10),
+        numero_sesion: 1,
+        medida_cintura: numVal(data, "medida_cintura"),
+        medida_cadera_abdomen: numVal(data, "medida_cadera_abdomen"),
+        medida_cadera_pierna_dcha: numVal(data, "medida_cadera_pierna_dcha"),
+        medida_cadera_pierna_izq: numVal(data, "medida_cadera_pierna_izq"),
+        medida_rodilla_dcha: numVal(data, "medida_rodilla_dcha"),
+        medida_rodilla_izq: numVal(data, "medida_rodilla_izq"),
+        medida_otros: strVal(data, "medida_otros"),
+        proxima_cita_fecha: strVal(data, "proxima_cita_fecha"),
+        proxima_cita_hora: strVal(data, "proxima_cita_hora"),
+      };
+      await window.NaromiDB.insert("sessions", sessionPayload);
+    }
+
     showToast("Ficha guardada correctamente");
-    form.reset();
+    renderClientForm(document.getElementById("app"));
   } catch (err) {
     showToast(err.message, true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Guardar ficha de cliente";
   }
 }
