@@ -5,7 +5,7 @@
 // cachean respuestas de la API).
 // =========================================================
 
-const CACHE_NAME = "naromi-cache-v6";
+const CACHE_NAME = "naromi-cache-v7";
 const ASSETS = [
   "./",
   "./index.html",
